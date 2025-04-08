@@ -1,0 +1,117 @@
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+    ConversationHandler,
+)
+import logging
+import asyncio
+
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Conversation states
+NAME, REMINDER_TYPE, REMINDER_DETAILS = range(3)
+
+TOKEN = '7423385441:AAGrAQmY95KSVNGuzgsRhRM1pSUU7s2akxI'
+
+async def shutdown(application):
+    await application.stop()
+    await application.shutdown()
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "Hello! 👋 What's your name?",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    return NAME
+
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_name = update.message.text
+    context.user_data['name'] = user_name
+    
+    buttons = [['📚 Exam', '📝 Assignment'], ['🛠️ Labwork', '🗣️ Colloquium']]
+    reply_markup = ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        f"Nice to meet you, {user_name}! 😊\nWhat would you like a reminder for?",
+        reply_markup=reply_markup
+    )
+    return REMINDER_TYPE
+
+async def get_reminder_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    reminder_type = update.message.text
+    context.user_data['reminder_type'] = reminder_type
+    
+    await update.message.reply_text(
+        f"Got it! Please send me the details for your {reminder_type} (what and when).\n"
+        "Example: 'Math exam on June 15 at 9:00 AM'",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    return REMINDER_DETAILS
+
+async def get_reminder_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    reminder_details = update.message.text
+    name = context.user_data.get('name', 'User')
+    reminder_type = context.user_data.get('reminder_type', 'reminder')
+    
+    await update.message.reply_text(
+        f"✅ All set, {name}! I'll remind you about:\n"
+        f"Type: {reminder_type}\n"
+        f"Details: {reminder_details}",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    
+    context.user_data.clear()
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "Operation cancelled.",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    context.user_data.clear()
+    return ConversationHandler.END
+
+def main():
+    """Run the bot."""
+    application = ApplicationBuilder()\
+        .token(TOKEN)\
+        .build()
+
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+            REMINDER_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_reminder_type)],
+            REMINDER_DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_reminder_details)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+
+    application.add_handler(conv_handler)
+
+    try:
+        print("Bot is running...")
+        application.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
+        )
+    except KeyboardInterrupt:
+        print("Shutting down gracefully...")
+    except Exception as e:
+        logger.error(f"Error: {e}")
+    finally:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(shutdown(application))
+        print("Bot stopped")
+
+if __name__ == '__main__':
+    main()
