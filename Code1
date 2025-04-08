@@ -1,0 +1,57 @@
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+
+# Replace this with your actual bot token
+BOT_TOKEN = "7423385441:AAEq2BXnfYpPsBxGQuPbofN_Q6lXGgnM3IE"
+
+# Define the start function for the /start command
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hello! I'm your travel guide bot. What country would you like to visit?")
+
+# Function to handle user messages about countries and cities
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text.lower()
+    
+    # Check if the message contains the name of a country
+    if "mexico" in user_message:
+        await update.message.reply_text("Great! Which city in Mexico would you like to visit? For example, 'Mexico City' or 'Cancun'.")
+    elif "france" in user_message:
+        await update.message.reply_text("Awesome! Which city in France are you thinking about? For example, 'Paris' or 'Nice'.")
+    elif "japan" in user_message:
+        await update.message.reply_text("Nice choice! Which city in Japan would you like to explore? You can try 'Tokyo' or 'Kyoto'.")
+    else:
+        await update.message.reply_text("I don't know that country. Would you like recommendations for popular travel destinations?")
+
+# Function to handle messages about cities and activities
+async def handle_city_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text.lower()
+    
+    # Recommend activities based on city
+    if "mexico city" in user_message:
+        await update.message.reply_text("Mexico City is amazing! What would you like to do there? I can help you with: rent a car, book a hotel, or visit attractions.")
+    elif "cancun" in user_message:
+        await update.message.reply_text("Cancun is beautiful! What would you like to do there? Rent a car, book a hotel, or explore tourist zones?")
+    elif "paris" in user_message:
+        await update.message.reply_text("Paris is wonderful! What activity are you interested in? Rent a car, book a hotel, or visit famous spots?")
+    elif "nice" in user_message:
+        await update.message.reply_text("Nice is a lovely city! Would you like to rent a car, book a hotel, or visit tourist attractions?")
+    elif "tokyo" in user_message:
+        await update.message.reply_text("Tokyo is a great choice! You can rent a car, book a hotel, or explore famous tourist areas. What would you prefer?")
+    else:
+        await update.message.reply_text("I don't know that city. Please choose from the available options.")
+
+# Set up the bot app
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+# Register the /start command handler
+app.add_handler(CommandHandler("start", start))
+
+# Register the message handler for country and city responses
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+# Register the city selection handler
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_city_selection))
+
+# Run the bot
+print("Bot is running...")
+app.run_polling()
